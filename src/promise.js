@@ -1,35 +1,39 @@
+const PENDING = 'pending';
+const FULFILLED = 'fulfilled';
+const REJECTED = 'rejected';
+
 class OwnPromise {
   constructor(executor) {
     if (typeof executor !== 'function') {
-      throw new TypeError('Promise resolver must be a function');
+      throw new TypeError('Promise executor must be a function');
     }
 
-    this._state = 'pending';
-    this._value = undefined;
-    // this._chained = [];
+    this.state = PENDING;
+    this.value = undefined;
+    this.chained = [];
 
     const resolve = value => {
-      if (this.state !== 'pending') {
+      if (this.state !== PENDING) {
         return;
       }
-      this._state = 'fulfilled';
-      this._value = value;
+      this.state = FULFILLED;
+      this.value = value;
 
-      // for (const { onFulfilled } of this.$chained) {
-      //   onFulfilled(res);
-      // }
+      for (const { onFulfilled } of this.chained) {
+        onFulfilled(value);
+      }
     };
 
     const reject = error => {
-      if (this.state !== 'pending') {
+      if (this.state !== PENDING) {
         return;
       }
-      this._state = 'rejected';
-      this._vaule = error;
+      this.state = REJECTED;
+      this.value = error;
 
-      // for (const { onRejected } of this.$chained) {
-      //   onRejected(err);
-      // }
+      for (const { onRejected } of this.chained) {
+        onRejected(error);
+      }
     };
 
     try {
@@ -49,10 +53,16 @@ class OwnPromise {
   }
 
   static all(arrOfPromises) {
-
   }
 
-  then(onResolve, onReject) {
+  then(onFulfilled, onRejected) {
+    if (this.state === FULFILLED) {
+      onFulfilled(this.value);
+    } else if (this.state === REJECTED) {
+      onRejected(this.error);
+    } else {
+      this.chained.push({ onFulfilled, onRejected });
+    }
   }
 }
 
