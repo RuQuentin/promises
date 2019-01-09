@@ -19,9 +19,9 @@ class OwnPromise {
       this.state = FULFILLED;
       this.value = value;
 
-      for (const { onFulfilled } of this.chained) {
-        onFulfilled(value);
-      }
+      // for (const { onFulfilled } of this.chained) {
+      //   onFulfilled(value);
+      // }
     };
 
     const reject = error => {
@@ -31,9 +31,9 @@ class OwnPromise {
       this.state = REJECTED;
       this.value = error;
 
-      for (const { onRejected } of this.chained) {
-        onRejected(error);
-      }
+      // for (const { onRejected } of this.chained) {
+      //   onRejected(error);
+      // }
     };
 
     try {
@@ -44,12 +44,20 @@ class OwnPromise {
   }
 
   static resolve(arg) {
+    const newOwnPromise = this.constructor();
+    newOwnPromise.resolve(arg);
+    return newOwnPromise;
   }
 
   static reject(arg) {
+    // return new OwnPromise();
+
   }
 
   static race(arrOfPromises) {
+    const isIterable = arrOfPromises !== null && typeof arrOfPromises[Symbol.iterator] === 'function';
+
+    if (!isIterable) this.reject();
   }
 
   static all(arrOfPromises) {
@@ -57,7 +65,7 @@ class OwnPromise {
 
   then(onFulfilled, onRejected) {
     if (this.state === FULFILLED) {
-      onFulfilled(this.value);
+      return new OwnPromise(onFulfilled(this.value));
     } else if (this.state === REJECTED) {
       onRejected(this.error);
     } else {
@@ -67,3 +75,6 @@ class OwnPromise {
 }
 
 module.exports = OwnPromise;
+
+
+console.log('hi')
