@@ -1,80 +1,87 @@
-const PENDING = 'pending';
-const FULFILLED = 'fulfilled';
-const REJECTED = 'rejected';
+/*eslint-disable*/
+const RESOLVED = 'RESOLVED';
+const PENDING = 'PENDING';
+const REJECTED = 'REJECTED';
+
+const cb = null;
 
 class OwnPromise {
   constructor(executor) {
-    if (typeof executor !== 'function') {
-      throw new TypeError('Promise executor must be a function');
+    //проверка, что экзекютор и функция
+    this.state = PENDING;
+    this.callbacks = []
+
+    // resolve можно вынести в класс, т.к. она вспомогательная
+    const resolve = data => { // НО! Сюда может прилететь промис, нужны проверки
+      if (this.state !== PENDING) {
+        return
+      }
+      
+      this.state = RESOLVED;
+      this.value = data;
+      // cb(this.value)
+      this.callbacks.forEach(({res, rej}) => {
+        // нужна проверка резолв или реджект
+        this.value = res(this.value);
+      })
     }
 
-    this.state = PENDING;
-    this.value = undefined;
-    this.chained = [];
-
-    const resolve = value => {
-      if (this.state !== PENDING) {
-        return;
-      }
-      this.state = FULFILLED;
-      this.value = value;
-
-      // for (const { onFulfilled } of this.chained) {
-      //   onFulfilled(value);
-      // }
-    };
-
-    const reject = error => {
-      if (this.state !== PENDING) {
-        return;
-      }
-      this.state = REJECTED;
-      this.value = error;
-
-      // for (const { onRejected } of this.chained) {
-      //   onRejected(error);
-      // }
-    };
+      const reject = error => {
+        if (this.state !== PENDING) {
+          return res(this.value);
+        }
+        
+        this.state = REJECTED;
+        this.value = data;
+    }
 
     try {
-      executor(resolve, reject);
+      executor(resolve, reject)
     } catch (err) {
-      reject(err);
+      // reject(err)
+    };
+
+  }
+
+  // вспомогательная функция для проверки состояния, чтобы ее вызывать
+
+  then(res, rej) {
+    // res(this.value);
+    // cb = res;
+    if (this.state === RESOLVED) {
+      r
     }
+    this.callbacks.push({res, rej});
+    return this; //но здесь нужно возвращать каждый раз новый инстанс своего промиса
   }
 
-  static resolve(arg) {
-    const newOwnPromise = this.constructor();
-    newOwnPromise.resolve(arg);
-    return newOwnPromise;
-  }
+  catch(rej) {
 
-  static reject(arg) {
-    // return new OwnPromise();
-
-  }
-
-  static race(arrOfPromises) {
-    const isIterable = arrOfPromises !== null && typeof arrOfPromises[Symbol.iterator] === 'function';
-
-    if (!isIterable) this.reject();
-  }
-
-  static all(arrOfPromises) {
-  }
-
-  then(onFulfilled, onRejected) {
-    if (this.state === FULFILLED) {
-      return new OwnPromise(onFulfilled(this.value));
-    } else if (this.state === REJECTED) {
-      onRejected(this.error);
-    } else {
-      this.chained.push({ onFulfilled, onRejected });
-    }
   }
 }
 
 module.exports = OwnPromise;
 
 
-console.log('hi')
+const p = new Promise(function(resolve, reject) {
+  // const F = null;
+  // const X = () => {};
+  // const Y = 10;
+  // for (let i = 10; i < 20; i +=3) {
+  //   console.log(F()) //будет ошибка при исполнении
+  // }
+
+  setTimeout( () => {
+    resolve(0);
+    reject()
+  }, 1000);
+});
+
+
+// p.then(console.log('abc')) //будет ошибка, если если console.log(F()) внутри сет таймаут
+
+p
+.then((data) => {console.log(data); return 1})
+.then((data) => {console.log(data); return 2})
+.then((data) => {console.log(data); return 3})
+
