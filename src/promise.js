@@ -12,53 +12,57 @@ class OwnPromise {
     this.state = PENDING;
     this.cbArray = [];
 
+    // === helping function ===
+    const putProcessInLine = () => {
+      setTimeout(() => {
+        try {
+          executor(resolve, reject)
+        } catch (err) {
+          reject(err)
+        };
+      }, 0);
+    }
+    // ========================
+
     const resolve = data => {
       if (this.state !== PENDING) {
         return
       }
 
-      if ( data instanceof OwnPromise ) {
-
+      if (!(data instanceof OwnPromise)) {
+        // console.log('step2 - 1st promise resolved');
+        this.state = RESOLVED;
+        this.value = data;
+      } else {
         if (data.state === PENDING) {
-          setTimeout(() => {
-            try {
-              executor(resolve, reject)
-            } catch (err) {
-              reject(err)
-            };
-          }, 1000);
-          
-          
+          putProcessInLine();
         }
 
         if (data.state === RESOLVED) {
-
-          setTimeout(() => {
-            console.log('step4 - then resolved')
-            this.state = RESOLVED;
-            this.value = data.cbArray.shift()['onResolve'](data.value);
-          }, 1000);
+          if (!(data.value instanceof OwnPromise)) {
+            setTimeout(() => {
+              // console.log('step4 - then resolved')
+              this.state = RESOLVED;
+              this.value = data.cbArray.shift()['onResolve'](data.value);
+            }, 0);
+          } else {
+            if (data.value.state === PENDING) {
+              putProcessInLine();
+            } else {
+              this.state = RESOLVED;
+              this.value = data.cbArray.shift()['onResolve'](data.value.value);
+            }
+          }
         }
-
-      } else {
-        console.log('step2 - 1st promise resolved');
-        this.state = RESOLVED;
-        this.value = data;
       }
-
-      // cb(this.value)
-      // this.cbArray.forEach(({res, rej}) => {
-      //   // нужна проверка резолв или реджект
-      //   this.value = res(this.value);
-      // })
     }
+
   
     const reject = error => {
       if (this.state !== PENDING) {
         return
         // return res(this.value);
-      }
-  
+
       this.state = REJECTED;
       this.value = error;
     }
@@ -79,26 +83,14 @@ class OwnPromise {
       throw new TypeError('onResolve must be a function');
     }
 
-    this.cbArray.push({onResolve, onReject});
+    this.cbArray.push({ onResolve, onReject });
 
-    if (RESOLVED || PENDING) {
-      // cbArray.push({onResolve, onReject});
-      // cbArray.push(onResolve);
-      console.log('step3 - then creates new Promise');
-      const newOwnPromise = new OwnPromise( resolve => {
-      resolve(this);
+    if (this.state === RESOLVED || PENDING) {
+      // console.log('step3 - then creates new Promise');
+      return new OwnPromise(resolve => {
+        resolve(this);
       });
-
-      return newOwnPromise;
     }
-
-    // if (this.state === PENDING) {
-    //   setTimeout(() => {
-    //     console.log('step1 - then is waiting while pending');
-    //     this.then(onResolve)
-    //   }, 500);
-    // }
-
   }
 
   catch(rej) {
@@ -109,14 +101,17 @@ class OwnPromise {
 // module.exports = OwnPromise;
 
 
-const p = new OwnPromise(function(resolve, reject) {
-    // if (true) {
-    setTimeout(() => {
-      resolve(0)
-    }, 2000);
+const p = new OwnPromise(function (resolve, reject) {
+  // if (true) {
+  setTimeout(() => {
+    console.log('basic promise')
+    resolve(0)
+  }, 2000);
   // } else {reject('Error')}
   //   reject()
 });
+
+
 
 
 // p.then(console.log('abc')) //будет ошибка, если если console.log(F()) внутри сет таймаут
@@ -147,19 +142,31 @@ const p = new OwnPromise(function(resolve, reject) {
 
 // =======================================
 
-p.then((v) =>  {
-  console.log(v,'first then 1');
-  return 1;
-  
-} ).then((v) =>  {
-  console.log(v,'second after first then 4');
+p.then((v) => {
+  // console.log(v,'first then 1');
+  // return 1;
+
+  const p1 = new OwnPromise(function (resolve, reject) {
+
+    setTimeout(() => {
+      console.log(v, 'first then 1');
+      resolve(1);
+    },
+      1000)
+
+  });
+
+  return p1.then(a => a * 2).then(a => a * 3)
+
+}).then((v) => {
+  console.log(v, 'second after first then 4');
   return 2;
-} );
+});
 
-p.then( (v) =>  {
-  console.log(v,'first independed then 2');
+p.then((v) => {
+  console.log(v, 'first independed then 2');
 
-} );
-p.then( (v) =>  {
-  console.log(v,'second independed then 3');
-} );
+});
+p.then((v) => {
+  console.log(v, 'second independed then 3');
+});
