@@ -32,9 +32,12 @@ class OwnPromise {
         }
 
         if (data.state === RESOLVED) {
-          console.log('step4 - then resolved')
-          this.state = RESOLVED;
-          this.value = data.cbArray[0](data.value);
+
+          setTimeout(() => {
+            console.log('step4 - then resolved')
+            this.state = RESOLVED;
+            this.value = data.cbArray.shift()['onResolve'](data.value);
+          }, 1000);
         }
 
       } else {
@@ -71,19 +74,21 @@ class OwnPromise {
 
   // вспомогательная функция для проверки состояния, чтобы ее вызывать
 
-  then(onResolve) {
+  then(onResolve, onReject) {
     if (typeof onResolve !== 'function') {
       throw new TypeError('onResolve must be a function');
     }
+
+    this.cbArray.push({onResolve, onReject});
 
     if (RESOLVED || PENDING) {
       // cbArray.push({onResolve, onReject});
       // cbArray.push(onResolve);
       console.log('step3 - then creates new Promise');
-      const newOwnPromise = new OwnPromise( (resolve) => {
-        this.cbArray.push(onResolve);
-        resolve(this);
+      const newOwnPromise = new OwnPromise( resolve => {
+      resolve(this);
       });
+
       return newOwnPromise;
     }
 
@@ -104,11 +109,11 @@ class OwnPromise {
 // module.exports = OwnPromise;
 
 
-const p = new Promise(function(resolve, reject) {
+const p = new OwnPromise(function(resolve, reject) {
     // if (true) {
     setTimeout(() => {
       resolve(0)
-    }, 1000);
+    }, 2000);
   // } else {reject('Error')}
   //   reject()
 });
@@ -123,12 +128,6 @@ const p = new Promise(function(resolve, reject) {
 // .then((data) => {console.log(data + 1); return data + 1})
 // .then((data) => {console.log(data + 1); return data + 1})
 // )
-
-// const p = new OwnPromise(function(resolve, reject) {
-//   // setTimeout(() => {
-//     resolve('value');
-//   // }, 1000);
-// });
 
 // =======================================
 
@@ -150,16 +149,17 @@ const p = new Promise(function(resolve, reject) {
 
 p.then((v) =>  {
   console.log(v,'first then 1');
-  return 'then 1'
+  return 1;
+  
 } ).then((v) =>  {
   console.log(v,'second after first then 4');
-  return 'then 2'
+  return 2;
 } );
 
 p.then( (v) =>  {
- console.log(v,'first independed then 2');
+  console.log(v,'first independed then 2');
 
 } );
 p.then( (v) =>  {
- console.log(v,'second independed then 3');
+  console.log(v,'second independed then 3');
 } );
