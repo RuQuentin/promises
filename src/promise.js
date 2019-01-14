@@ -57,11 +57,11 @@ class OwnPromise {
       }
     }
 
+  
     const reject = error => {
       if (this.state !== PENDING) {
         return
         // return res(this.value);
-      }
 
       this.state = REJECTED;
       this.value = error;
