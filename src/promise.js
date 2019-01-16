@@ -27,39 +27,44 @@ class OwnPromise {
         return
       }
 
-      if (!(data instanceof OwnPromise)) {
+      if (!(data instanceof OwnPromise)) { // for initial promise
         this.state = RESOLVED;
         this.value = data;
       }
 
-      if (data instanceof OwnPromise) {
+      if (data instanceof OwnPromise) { // when resolve(promise) or then
         if (data.state === PENDING) {
           putResolveInLine(data);
         }
 
         if (data.state === RESOLVED) {
-          if (!(data.value instanceof OwnPromise)) {
-            if (data.cbArray.length === 0) {
+          if (!(data.value instanceof OwnPromise)) { // when resolve(promise) or then(return value)
+            if (data.cbArray[0] === undefined || data.cbArray[0]['onResolve'] === undefined) { // when there is no callback (in case resolve(promise) or empty then())
               this.state = RESOLVED;
               this.value = data.value;
             }
 
-            if (data.cbArray.length !== 0) {
-              setTimeout(() => {
+            if (data.cbArray[0] !== undefined && data.cbArray[0]['onResolve'] !== undefined) { // when there is a callback in then
                 this.state = RESOLVED;
                 this.value = data.cbArray.shift()['onResolve'](data.value);
-              }, CONSTRUCTOR_TIMEOUT);
             }
           }
 
-          if (data.value instanceof OwnPromise) {
+          if (data.value instanceof OwnPromise) { //when then(return promise)
             if (data.value.state === PENDING) {
               putResolveInLine(data);
             }
 
             if (data.value.state === RESOLVED) {
-              this.state = RESOLVED;
-              this.value = data.cbArray.shift()['onResolve'](data.value.value);
+              if (data.cbArray.length === 0) { // when there is no callback in then (empty then())
+                this.state = RESOLVED;
+                this.value = data.value.value;
+              }
+
+              if (data.cbArray.length !== 0) {// when there is a callback in then
+                this.state = RESOLVED;
+                this.value = data.cbArray.shift()['onResolve'](data.value.value);
+              }
             }
           }
         }
@@ -91,7 +96,7 @@ class OwnPromise {
 
   then(onResolve, onReject) {
 
-    if (typeof onResolve !== 'function') {
+    if (onResolve !== undefined && typeof onResolve !== 'function') {
       throw new TypeError('onResolve must be a function');
     }
 
@@ -124,7 +129,7 @@ class OwnPromise {
 
 let a = 2;
 
-const p2 = new Promise(function (resolve, reject) {
+const p2 = new OwnPromise(function (resolve, reject) {
 
   setTimeout(() => {
     console.log('basic aside promise');
@@ -134,7 +139,7 @@ const p2 = new Promise(function (resolve, reject) {
 
 });
 
-const p = new Promise(function (resolve, reject) {
+const p = new OwnPromise(function (resolve, reject) {
   if (true) {
   setTimeout(() => {
     console.log('basic promise')
@@ -153,7 +158,7 @@ const p = new Promise(function (resolve, reject) {
 p.then((v) => {
   // console.log(v,'first then 1');
   // return 1;
-  const p1 = new Promise(function (resolve, reject) {
+  const p1 = new OwnPromise(function (resolve, reject) {
 
     setTimeout(() => {
       console.log(v, 'first then 1');
@@ -179,7 +184,7 @@ p.then(
   // console.log(reason)
 });
 
-p.then((v) => {
+p.then().then((v) => {
   console.log(v, 'second independed then 3');
 });
 
