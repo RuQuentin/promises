@@ -20,7 +20,7 @@ class OwnPromise {
         } catch (err) {
           reject(err)
         };
-      }, 0);
+      }, 50);
     }
     // ========================
 
@@ -30,7 +30,6 @@ class OwnPromise {
       }
 
       if (!(data instanceof OwnPromise)) {
-        // console.log('step2 - 1st promise resolved');
         this.state = RESOLVED;
         this.value = data;
       } else {
@@ -41,17 +40,20 @@ class OwnPromise {
         if (data.state === RESOLVED) {
           if (!(data.value instanceof OwnPromise)) {
             setTimeout(() => {
-              // console.log('step4 - then resolved')
               this.state = RESOLVED;
               this.value = data.cbArray.shift()['onResolve'](data.value);
-            }, 0);
+            }, 50);
           } else {
             if (data.value.state === PENDING) {
               putProcessInLine();
-            } else {
+            }
+
+            if (data.value.state === RESOLVED) {
               this.state = RESOLVED;
               this.value = data.cbArray.shift()['onResolve'](data.value.value);
             }
+
+            // нужен ли сценарий, если он REJECTED?
           }
         }
       }
@@ -60,7 +62,6 @@ class OwnPromise {
     const reject = error => {
       if (this.state !== PENDING) {
         return
-        // return res(this.value);
       }
 
       this.state = REJECTED;
@@ -85,12 +86,19 @@ class OwnPromise {
 
     this.cbArray.push({ onResolve, onReject });
 
-    if (this.state === RESOLVED || PENDING) {
+    if (this.state === RESOLVED || this.state === PENDING) {
       // console.log('step3 - then creates new Promise');
       return new OwnPromise(resolve => {
         resolve(this);
       });
     }
+
+    // if (this.state === REJECTED) {
+    //   // console.log('step3 - then creates new Promise');
+    //   return new OwnPromise(resolve => {
+    //     resolve(this);
+    //   });
+    // }
   }
 
   catch(rej) {
@@ -101,14 +109,13 @@ class OwnPromise {
 // module.exports = OwnPromise;
 
 
-const p = new OwnPromise(function (resolve, reject) {
-  // if (true) {
+const p = new Promise(function (resolve, reject) {
+  if (false) {
   setTimeout(() => {
     console.log('basic promise')
     resolve(0)
   }, 2000);
-  // } else {reject('Error')}
-  //   reject()
+  } else {reject('Ошибочка')}
 });
 
 
@@ -145,12 +152,11 @@ const p = new OwnPromise(function (resolve, reject) {
 p.then((v) => {
   // console.log(v,'first then 1');
   // return 1;
-
-  const p1 = new OwnPromise(function (resolve, reject) {
+  const p1 = new Promise(function (resolve, reject) {
 
     setTimeout(() => {
       console.log(v, 'first then 1');
-      resolve(1);
+      resolve(v + 2);
     },
       1000)
 
@@ -158,15 +164,22 @@ p.then((v) => {
 
   return p1.then(a => a * 2).then(a => a * 3)
 
-}).then((v) => {
+}).then(
+  (v) => {
   console.log(v, 'second after first then 4');
   return 2;
 });
 
-p.then((v) => {
+p.then(
+  (v) => {
   console.log(v, 'first independed then 2');
-
+// },
+  // (reason) => {
+  // console.log(reason)
 });
+
 p.then((v) => {
   console.log(v, 'second independed then 3');
 });
+
+console.log(p)
