@@ -68,10 +68,15 @@ class OwnPromise {
       }
     }
 
+  
     const reject = error => {
       if (this.state !== PENDING) {
         return
+<<<<<<< HEAD
       }
+=======
+        // return res(this.value);
+>>>>>>> ffe3ddab80ee23506de421f4b1b01c92b0649753
 
       this.state = REJECTED;
       this.value = error;
@@ -181,8 +186,11 @@ p.then(
 p.then((v) => {
   console.log(v, 'second independed then 3');
 });
+<<<<<<< HEAD
 
 
 
 
 // Если resolve возвращает другой Promise. Тогда дальнейшее выполнение ожидает его результата (в очередь помещается специальная задача), и функции-обработчики выполняются уже с ним. - добавить в сценарий для resolve?
+=======
+>>>>>>> ffe3ddab80ee23506de421f4b1b01c92b0649753
