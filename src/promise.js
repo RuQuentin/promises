@@ -22,12 +22,21 @@ class OwnPromise {
     }
     // ========================
 
+    // === helping function ===
+    const putRejectInLine = error => {
+      setTimeout(() =>
+        reject(error),
+        CONSTRUCTOR_TIMEOUT
+        );
+    }
+    // ========================
+
     const resolve = data => {
       if (this.state !== PENDING) {
         return
       }
 
-      if (!(data instanceof OwnPromise)) { // for initial promise
+      if (!(data instanceof OwnPromise)) { // for initial promise if it doesn't return promise 
         this.state = RESOLVED;
         this.value = data;
       }
@@ -37,51 +46,99 @@ class OwnPromise {
           putResolveInLine(data);
         }
 
+        if (data.state === REJECTED) {
+          reject(data);
+        }
+
         if (data.state === RESOLVED) {
-          if (!(data.value instanceof OwnPromise)) { // when resolve(promise) or then(return value)
-            if (data.cbArray[0] === undefined || data.cbArray[0]['onResolve'] === undefined) { // when there is no callback (in case resolve(promise) or empty then())
+          if (!(data.value instanceof OwnPromise)) { // when resolve(value) or then(return value)
+            if (data.cbArray[0] === undefined || data.cbArray[0].onResolve === undefined) { // when there is no callback (in case resolve(promise) or empty then()) - just pass the previous value further
               this.state = RESOLVED;
-              this.value = data.value;
+              this.value = data.value;                          
             }
 
-            if (data.cbArray[0] !== undefined && data.cbArray[0]['onResolve'] !== undefined) { // when there is a callback in then
+            if (data.cbArray[0] !== undefined && data.cbArray[0].onResolve !== undefined) { // when there is a callback in then
                 this.state = RESOLVED;
-                this.value = data.cbArray.shift()['onResolve'](data.value);
+                this.value = data.cbArray.shift().onResolve(data.value);
+              console.log(this.value);
+
             }
           }
 
-          if (data.value instanceof OwnPromise) { //when then(return promise)
+          if (data.value instanceof OwnPromise) { //when resolve(promise) or then(return promise)
             if (data.value.state === PENDING) {
               putResolveInLine(data);
             }
 
             if (data.value.state === RESOLVED) {
-              if (data.cbArray.length === 0) { // when there is no callback in then (empty then())
+              if (data.cbArray.length === 0) { // when there is no callback in then (empty then()) just pass the previous value further
                 this.state = RESOLVED;
                 this.value = data.value.value;
               }
 
-              if (data.cbArray.length !== 0) {// when there is a callback in then
+              if (data.cbArray.length !== 0) { // when there is a callback in then
                 this.state = RESOLVED;
-                this.value = data.cbArray.shift()['onResolve'](data.value.value);
+                this.value = data.cbArray.shift().onResolve(data.value.value);
               }
             }
           }
         }
-        
-            // нужен ли сценарий, если он REJECTED?
       }
     }
 
-  
     const reject = error => {
       if (this.state !== PENDING) {
         return
       }
 
-      this.state = REJECTED;
-      this.value = error;
+      if (!(error instanceof OwnPromise)) { // for initial promise
+        this.state = REJECTED;
+        this.value = error;
+      }
+
+      if (error instanceof OwnPromise) { // when reject(promise) or then
+        if (error.state === PENDING) {
+          putRejectInLine(data);
+        }
+
+        // if (error.state === REJECTED) {
+        //   reject(error);
+        // }
+
+        if (error.state === REJECTED) {
+          if (!(error.value instanceof OwnPromise)) { // when resolve(promise) or then(return value)
+            if (error.cbArray[0] === undefined || error.cbArray[0].onResolve === undefined) { // when there is no callback (in case resolve(promise) or empty then())
+              this.state = REJECTED; // if there is no onReject in previous then
+              this.value = error.value;
+            }
+
+            if (error.cbArray[0] !== undefined && error.cbArray[0].onResolve !== undefined) { // when there is a callback in then
+                this.state = RESOLVED;
+                this.value = error.cbArray.shift().onReject(error.value);
+            }
+          }
+
+          if (error.value instanceof OwnPromise) { //when onReject returns promise
+            if (error.value.state === PENDING) {
+              putRejectInLine(error);
+            }
+
+            if (error.value.state === RESOLVED) {
+              if (error.cbArray.length === 0) { // when there is no onReject in then (empty then())
+                this.state = REJECTED;
+                this.value = error.value.value;                
+              }
+
+              if (error.cbArray.length !== 0) {// when there is an onReject in then
+                this.state = RESOLVED;
+                this.value = error.cbArray.shift().onReject(error.value.value);
+              }
+            }
+          }
+        }
+      }
     }
+
 
     try {
       executor(resolve, reject)
@@ -104,17 +161,17 @@ class OwnPromise {
 
     if (this.state === RESOLVED || this.state === PENDING) {
       // console.log('step3 - then creates new Promise');
-      return new OwnPromise(resolve => {
+      return new OwnPromise((resolve, reject) => {
         resolve(this);
       });
     }
 
-    // if (this.state === REJECTED) {
-    //   // console.log('step3 - then creates new Promise');
-    //   return new OwnPromise(resolve => {
-    //     resolve(this);
-    //   });
-    // }
+    if (this.state === REJECTED) {
+      // console.log('step3 - then creates new Promise');
+      return new OwnPromise((resolve, reject) => {
+        reject(this);
+      });
+    }
   }
 
   catch(rej) {
@@ -144,18 +201,25 @@ const p = new OwnPromise(function (resolve, reject) {
   setTimeout(() => {
     console.log('basic promise')
     console.log(a)
-    a = a + 2;
+    // a = a + 2;
 
     resolve(p2)
   }, 1000);
-  } else {reject('Ошибочка')}
+  } else {
+    // throw new TypeError('artifactial error')
+    reject('Ошибочка');
+  }
 });
 
+// console.log(p);
 
 
 // =======================================
 
-p.then((v) => {
+const pHelper = p
+.then(
+  // 2, 2
+  (v) => {
   // console.log(v,'first then 1');
   // return 1;
   const p1 = new OwnPromise(function (resolve, reject) {
@@ -168,13 +232,34 @@ p.then((v) => {
 
   });
 
-  return p1.then(a => a * 2).then(a => a * 3)
+  // throw new TypeError('my error')
 
-}).then(
+  return p1.then(a => a * 2).then(a => a * 3) 
+}
+, (err) => err
+)
+
+// .then()
+// .catch(err => {
+//   console.log(err);
+//   return p2
+// }
+  // )
+// .then(data => data * 2, err => err)
+
+
+console.log(pHelper)
+
+console.log(
+  pHelper.then(
+    // null
   (v) => {
   console.log(v, 'second after first then 4');
   return 2;
-});
+}
+, (err) => console.log(err)
+)
+);
 
 p.then(
   (v) => {
@@ -186,7 +271,8 @@ p.then(
 
 p.then().then((v) => {
   console.log(v, 'second independed then 3');
-});
+})
+
 
 
 // Если resolve возвращает другой Promise. Тогда дальнейшее выполнение ожидает его результата (в очередь помещается специальная задача), и функции-обработчики выполняются уже с ним. - добавить в сценарий для resolve?
