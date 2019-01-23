@@ -67,7 +67,6 @@ class OwnPromise {
     setTimeout(run, 0);
   }
 
-
   then(onFulfilled, onRejected) {
     return new this.constructor((resolve, reject) => {
       const internalOnfulfill = value => {
@@ -148,7 +147,7 @@ class OwnPromise {
 
   static race(iterable) {
     if (typeof this !== 'function') {
-      throw new TypeError('this is not instance from OwnPromise');
+      throw new TypeError('`This` is not an instance of OwnPromise');
     }
 
     if (!Array.isArray(iterable)) {
@@ -168,14 +167,18 @@ class OwnPromise {
     });
   }
 
-    static all(iterable) {
+  static all(iterable) {
     if (typeof this !== 'function') {
-      throw new TypeError('this is not a constructor');
+      throw new TypeError('`This` is not a constructor');
     }
 
     return new this((resolve, reject) => {
-      if (typeof resolve !== 'function' || typeof reject !== 'function') {
-        throw new TypeError('Not a function');
+      if (typeof resolve !== 'function') {
+        throw new TypeError(`${resolve} is not a function`);
+      }
+
+      if (typeof reject !== 'function') {
+        throw new TypeError(`${reject} is not a function`);
       }
 
       const isIterable = object => object !== null && typeof object[Symbol.iterator] === 'function';
@@ -219,12 +222,16 @@ class OwnPromise {
 
   static all(iterable) {
     if (typeof this !== 'function') {
-      throw new TypeError('this is not a constructor');
+      throw new TypeError('`This` is not a constructor');
     }
 
     return new this((resolve, reject) => {
-      if (typeof resolve !== 'function' || typeof reject !== 'function') {
-        throw new TypeError('Not a function');
+      if (typeof resolve !== 'function') {
+        throw new TypeError(`${resolve} is not a function`);
+      }
+
+      if (typeof reject !== 'function') {
+        throw new TypeError(`${reject} is not a function`);
       }
 
       const isIterable = object => object !== null && typeof object[Symbol.iterator] === 'function';
@@ -267,75 +274,4 @@ class OwnPromise {
   }
 }
 
-// module.exports = OwnPromise;
-
-
-const p = new OwnPromise(function (resolve, reject) {
-  // if (true) {
-  setTimeout(() => {
-    console.log('basic promise')
-    resolve(0)
-  }, 2000);
-  // } else {reject('Error')}
-  //   reject()
-});
-
-
-
-
-// p.then(console.log('abc')) //будет ошибка, если если console.log(F()) внутри сет таймаут
-
-// =======================================
-
-// console.log(p
-// .then((data) => {console.log(data + 1); return data + 1})
-// .then((data) => {console.log(data + 1); return data + 1})
-// .then((data) => {console.log(data + 1); return data + 1})
-// )
-
-// =======================================
-
-// p.then(v => {
-//   console.log('1');
-// })
-//   .then(v => {
-//     console.log('4');
-//   });
-
-// p.then(v => {
-//   console.log('2');
-// })
-// p.then(v => {
-//     console.log('3');
-//   });
-
-// =======================================
-
-p.then((v) => {
-  // console.log(v,'first then 1');
-  // return 1;
-
-  const p1 = new OwnPromise(function (resolve, reject) {
-
-    setTimeout(() => {
-      console.log(v, 'first then 1');
-      resolve(1);
-    },
-      1000)
-
-  });
-
-  return p1.then(a => a * 2).then(a => a * 3)
-
-}).then((v) => {
-  console.log(v, 'second after first then 4');
-  return 2;
-});
-
-p.then((v) => {
-  console.log(v, 'first independed then 2');
-
-});
-p.then((v) => {
-  console.log(v, 'second independed then 3');
-});
+module.exports = OwnPromise;
