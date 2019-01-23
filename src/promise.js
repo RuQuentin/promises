@@ -68,22 +68,38 @@ class OwnPromise {
   }
 
 
+  then(onFulfilled, onRejected) {
+    return new this.constructor((resolve, reject) => {
+      const internalOnfulfill = value => {
+        try {
+          resolve(onFulfilled(value));
+        } catch (error) {
+          reject(error);
+        }
+      };
 
-  // вспомогательная функция для проверки состояния, чтобы ее вызывать
+      const internalOnreject = reason => {
+        if (onRejected && typeof onRejected === 'function') {
+          try {
+            resolve(onRejected(reason));
+          } catch (error) {
+            reject(error);
+          }
+        } else {
+          reject(reason);
+        }
+      };
 
-  then(onResolve, onReject) {
-    if (typeof onResolve !== 'function') {
-      throw new TypeError('onResolve must be a function');
-    }
-
-    this.cbArray.push({ onResolve, onReject });
-
-    if (this.state === RESOLVED || PENDING) {
-      // console.log('step3 - then creates new Promise');
-      return new OwnPromise(resolve => {
-        resolve(this);
-      });
-    }
+      if (this.state === PENDING) {
+        this.callbacks.push({ onFulfilled: internalOnfulfill, onRejected: internalOnreject });
+      } else if (this.callbacks.length > 0) {
+        this.callHandlers();
+      } else {
+        this.state === RESOLVED
+          ? setTimeout(() => internalOnfulfill(this.value), 0)
+          : setTimeout(() => internalOnreject(this.value), 0);
+      }
+    });
   }
 
   catch(rej) {
