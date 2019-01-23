@@ -126,7 +126,20 @@ class OwnPromise {
 
       resolve(data);
     });
-}
+  }
+
+  static reject(error) {
+    if (typeof this !== 'function') {
+      throw new TypeError('this is not instance from Own Promise');
+    }
+
+    return new this((resolve, reject) => {
+      if (typeof resolve !== 'function' || typeof reject !== 'function') {
+        throw new TypeError('Not a function');
+      }
+      reject(error);
+    });
+  }
 }
 
 // module.exports = OwnPromise;
