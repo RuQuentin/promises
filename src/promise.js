@@ -168,6 +168,103 @@ class OwnPromise {
     });
   }
 
+    static all(iterable) {
+    if (typeof this !== 'function') {
+      throw new TypeError('this is not a constructor');
+    }
+
+    return new this((resolve, reject) => {
+      if (typeof resolve !== 'function' || typeof reject !== 'function') {
+        throw new TypeError('Not a function');
+      }
+
+      const isIterable = object => object !== null && typeof object[Symbol.iterator] === 'function';
+
+      if (!isIterable(iterable)) {
+        throw new TypeError('ERROR');
+      }
+
+      const isEmptyIterable = iterable => {
+        for (const key of iterable) {
+          return true;
+        }
+        return false;
+      };
+
+      if (!isEmptyIterable(iterable)) {
+        return resolve([]);
+      }
+
+      const values = new Array(iterable.length);
+      let counter = 0;
+
+      const tryResolve = i => value => {
+        values[i] = value;
+        counter += 1;
+
+        if (counter === iterable.length) {
+          resolve(values);
+        }
+      };
+
+      for (let i = 0; i < iterable.length; i++) {
+        const promise = iterable[i] instanceof OwnPromise
+          ? iterable[i]
+          : new OwnPromise(res => { res(iterable[i]); });
+
+        promise.then(tryResolve(i), reject);
+      }
+    });
+  }
+
+  static all(iterable) {
+    if (typeof this !== 'function') {
+      throw new TypeError('this is not a constructor');
+    }
+
+    return new this((resolve, reject) => {
+      if (typeof resolve !== 'function' || typeof reject !== 'function') {
+        throw new TypeError('Not a function');
+      }
+
+      const isIterable = object => object !== null && typeof object[Symbol.iterator] === 'function';
+
+      if (!isIterable(iterable)) {
+        throw new TypeError('ERROR');
+      }
+
+      const isEmptyIterable = iterable => {
+        for (const key of iterable) {
+          return true;
+        }
+        return false;
+      };
+
+      if (!isEmptyIterable(iterable)) {
+        return resolve([]);
+      }
+
+      const values = new Array(iterable.length);
+      let counter = 0;
+
+      const tryResolve = i => value => {
+        values[i] = value;
+        counter += 1;
+
+        if (counter === iterable.length) {
+          resolve(values);
+        }
+      };
+
+      for (let i = 0; i < iterable.length; i++) {
+        const promise = iterable[i] instanceof OwnPromise
+          ? iterable[i]
+          : new OwnPromise(res => { res(iterable[i]); });
+
+        promise.then(tryResolve(i), reject);
+      }
+    });
+  }
 }
 
 // module.exports = OwnPromise;
