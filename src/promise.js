@@ -117,11 +117,11 @@ class OwnPromise {
 
     return new this((resolve, reject) => {
       if (typeof resolve !== 'function') {
-        throw new TypeError(`${resolve} Is not a function`);
+        throw new TypeError(`${resolve} is not a function`);
       }
 
       if (typeof reject !== 'function') {
-        throw new TypeError(`${reject} Is not a function`);
+        throw new TypeError(`${reject} is not a function`);
       }
 
       resolve(data);
@@ -135,17 +135,38 @@ class OwnPromise {
 
     return new this((resolve, reject) => {
       if (typeof resolve !== 'function') {
-        throw new TypeError(`${resolve} Is not a function`);
+        throw new TypeError(`${resolve} is not a function`);
       }
 
       if (typeof reject !== 'function') {
-        throw new TypeError(`${reject} Is not a function`);
+        throw new TypeError(`${reject} is not a function`);
       }
 
       reject(error);
     });
   }
 
+  static race(iterable) {
+    if (typeof this !== 'function') {
+      throw new TypeError('this is not instance from OwnPromise');
+    }
+
+    if (!Array.isArray(iterable)) {
+      return this.reject(new TypeError('Not an array'));
+    }
+
+    return new this((resolve, reject) => {
+      if (typeof resolve !== 'function') {
+        throw new TypeError(`${resolve} is not a function`);
+      }
+
+      if (typeof reject !== 'function') {
+        throw new TypeError(`${reject} is not a function`);
+      }
+
+      iterable.forEach(value => value.then(resolve, reject));
+    });
+  }
 
 }
 
