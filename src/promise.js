@@ -9,7 +9,7 @@ class OwnPromise {
     this.callbacks = [];
 
     if (typeof executer !== 'function') {
-      throw new TypeError('Executer is not function');
+      throw new TypeError('Executer is not a function');
     }
 
     const reject = error => {
@@ -102,9 +102,31 @@ class OwnPromise {
     });
   }
 
-  catch(rej) {
-
+  catch(onRejected) {
+    return this.then(null, onRejected);
   }
+
+  static resolve(data) {
+    if (typeof this !== 'function') {
+      throw new TypeError('`This` is not an instance of OwnPromise');
+    }
+
+    if (data instanceof OwnPromise) {
+      return data;
+    }
+
+    return new this((resolve, reject) => {
+      if (typeof resolve !== 'function') {
+        throw new TypeError(`${resolve} Is not a function`);
+      }
+
+      if (typeof reject !== 'function') {
+        throw new TypeError(`${reject} Is not a function`);
+      }
+
+      resolve(data);
+    });
+}
 }
 
 // module.exports = OwnPromise;
