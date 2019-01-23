@@ -130,16 +130,23 @@ class OwnPromise {
 
   static reject(error) {
     if (typeof this !== 'function') {
-      throw new TypeError('this is not instance from Own Promise');
+      throw new TypeError('`This` is not an instance of OwnPromise');
     }
 
     return new this((resolve, reject) => {
-      if (typeof resolve !== 'function' || typeof reject !== 'function') {
-        throw new TypeError('Not a function');
+      if (typeof resolve !== 'function') {
+        throw new TypeError(`${resolve} Is not a function`);
       }
+
+      if (typeof reject !== 'function') {
+        throw new TypeError(`${reject} Is not a function`);
+      }
+
       reject(error);
     });
   }
+
+
 }
 
 // module.exports = OwnPromise;
