@@ -4,74 +4,67 @@ const PENDING = 'PENDING';
 const REJECTED = 'REJECTED';
 
 class OwnPromise {
-  constructor(executor) {
-    if (typeof executor !== 'function') {
-      throw new TypeError('Promise executor must be a function');
-    }
-
+  constructor(executer) {
     this.state = PENDING;
-    this.cbArray = [];
+    this.callbacks = [];
 
-    // === helping function ===
-    const putProcessInLine = () => {
-      setTimeout(() => {
-        try {
-          executor(resolve, reject)
-        } catch (err) {
-          reject(err)
-        };
-      }, 0);
-    }
-    // ========================
-
-    const resolve = data => {
-      if (this.state !== PENDING) {
-        return
-      }
-
-      if (!(data instanceof OwnPromise)) {
-        // console.log('step2 - 1st promise resolved');
-        this.state = RESOLVED;
-        this.value = data;
-      } else {
-        if (data.state === PENDING) {
-          putProcessInLine();
-        }
-
-        if (data.state === RESOLVED) {
-          if (!(data.value instanceof OwnPromise)) {
-            setTimeout(() => {
-              // console.log('step4 - then resolved')
-              this.state = RESOLVED;
-              this.value = data.cbArray.shift()['onResolve'](data.value);
-            }, 0);
-          } else {
-            if (data.value.state === PENDING) {
-              putProcessInLine();
-            } else {
-              this.state = RESOLVED;
-              this.value = data.cbArray.shift()['onResolve'](data.value.value);
-            }
-          }
-        }
-      }
+    if (typeof executer !== 'function') {
+      throw new TypeError('Executer is not function');
     }
 
-  
     const reject = error => {
       if (this.state !== PENDING) {
-        return
-        // return res(this.value);
+        return;
+      }
 
       this.state = REJECTED;
       this.value = error;
-    }
+
+      this.callbacks.forEach(({ onRejected }) => {
+        this.value = onRejected(error);
+      });
+    };
+
+    const resolve = data => {
+      if (this.state !== PENDING) {
+        return;
+      }
+
+      if (this.isThenable(data) && data.state === PENDING) {
+        data.then(v => resolve(v), v => reject(v));
+      }
+
+      this.state = this.isThenable(data) ? data.state : RESOLVED;
+      this.value = this.isThenable(data) ? data.value : data;
+
+      this.callHandlers();
+    };
 
     try {
-      executor(resolve, reject)
-    } catch (err) {
-      reject(err)
+      executer(resolve, reject);
+    } catch (error) {
+      reject(error);
+    }
+  }
+
+  isThenable(obj) {
+    return obj && obj.then;
+  }
+
+  callHandlers() {
+    const run = () => {
+      this.callbacks.forEach((callback, i) => {
+        const { onFulfilled, onRejected } = callback;
+
+        if (this.callbacks.length === i) {
+          this.value = this.state === RESOLVED ? onFulfilled(this.value) : onRejected(this.value);
+        }
+
+        this.state === RESOLVED ? onFulfilled(this.value) : onRejected(this.value);
+      });
     };
+
+    setTimeout(run, 0);
   }
 
 
